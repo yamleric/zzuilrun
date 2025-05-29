@@ -1,11 +1,16 @@
 package dao;
+
+import dao.UserDao;
 import model.User;
 import util.DatabaseUtil;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
 public class UserDaoImpl implements UserDao {
     @Override
-    public User findByUsername(String username) {
+    public User getUserByUsername(String username) {
         String sql = "SELECT * FROM users WHERE username = ?";
         try (Connection conn = DatabaseUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -14,14 +19,7 @@ public class UserDaoImpl implements UserDao {
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
-                User user = new User();
-                user.setUserId(rs.getInt("userid"));
-                user.setUsername(rs.getString("username"));
-                user.setPassword(rs.getString("password"));
-                user.setRealName(rs.getString("real_name"));
-                user.setCollege(rs.getString("college"));
-                user.setRole(rs.getInt("role"));
-                return user;
+                return extractUserFromResultSet(rs);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -30,14 +28,107 @@ public class UserDaoImpl implements UserDao {
     }
 
     @Override
-    public boolean save(User user) {
-        // 实现保存逻辑
-        return false;
+    public boolean addUser(User user) {
+        String sql = "INSERT INTO users(username, password, real_name, gender, college_id, role, phone, email) " +
+                "VALUES(?, ?, ?, ?, ?, ?, ?, ?)";
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, user.getUsername());
+            stmt.setString(2, user.getPassword());
+            stmt.setString(3, user.getRealName());
+            stmt.setString(4, String.valueOf(user.getGender()));
+            stmt.setInt(5, user.getCollegeId());
+            stmt.setInt(6, user.getRole());
+            stmt.setString(7, user.getPhone());
+            stmt.setString(8, user.getEmail());
+
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    @Override
+    public boolean updateUser(User user) {
+        String sql = "UPDATE users SET real_name = ?, gender = ?, college_id = ?, phone = ?, email = ? " +
+                "WHERE user_id = ?";
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, user.getRealName());
+            stmt.setString(2, String.valueOf(user.getGender()));
+            stmt.setInt(3, user.getCollegeId());
+            stmt.setString(4, user.getPhone());
+            stmt.setString(5, user.getEmail());
+            stmt.setInt(6, user.getUserId());
+
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    @Override
+    public boolean deleteUser(int userId) {
+        String sql = "DELETE FROM users WHERE user_id = ?";
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, userId);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     @Override
     public boolean validateUser(String username, String password) {
-        User user = findByUsername(username);
-        return user != null && user.getPassword().equals(password);
+        String sql = "SELECT * FROM users WHERE username = ? AND password = ? AND status = 1";
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, username);
+            stmt.setString(2, password);
+            ResultSet rs = stmt.executeQuery();
+            return rs.next();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    @Override
+    public boolean changeUserStatus(int userId, int status) {
+        String sql = "UPDATE users SET status = ? WHERE user_id = ?";
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, status);
+            stmt.setInt(2, userId);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    private User extractUserFromResultSet(ResultSet rs) throws SQLException {
+        User user = new User();
+        user.setUserId(rs.getInt("user_id"));
+        user.setUsername(rs.getString("username"));
+        user.setPassword(rs.getString("password"));
+        user.setRealName(rs.getString("real_name"));
+        user.setGender(rs.getString("gender"));
+        user.setCollegeId(rs.getInt("college_id"));
+        user.setRole(rs.getInt("role"));
+        user.setPhone(rs.getString("phone"));
+        user.setEmail(rs.getString("email"));
+        user.setStatus(rs.getInt("status"));
+        user.setCreateTime(rs.getTimestamp("create_time"));
+        return user;
     }
 }

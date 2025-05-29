@@ -1,5 +1,7 @@
 package model;
 
+import java.util.Date;
+
 public class User {
     private int userId;
     private String username;
@@ -12,6 +14,15 @@ public class User {
     private String email;
     private int status;
     private String college;
+    private Date createTime;
+
+    public Date getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(Date createTime) {
+        this.createTime = createTime;
+    }
 
     public String getCollege() {
         return college;
@@ -75,7 +86,16 @@ public class User {
     public int getRole() {
         return role;
     }
-
+    public String getRoleName() {
+        switch (role) {
+            case 1:
+                return "普通用户";
+            case 2:
+                return "管理员";
+            default:
+                return "未知角色";
+        }
+    }
     public void setRole(int role) {
         this.role = role;
     }
