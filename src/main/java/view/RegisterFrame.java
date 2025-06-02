@@ -53,7 +53,7 @@ public class RegisterFrame extends JFrame {
 
         // 院系
         panel.add(new JLabel("院系:"));
-        collegeComboBox = new JComboBox<>(new String[]{"计算机学院", "电气学院", "机械学院"});
+        collegeComboBox = new JComboBox<>(new String[]{"计算机学院","软件学院", "电气学院", "机械学院"});
         panel.add(collegeComboBox);
 
         // 电话

@@ -117,9 +117,9 @@ public class LoginFrame extends JFrame {
 
             // 根据用户角色打开不同界面
             if (user.getRole() == 1) { // 普通用户
-//                new UserMainFrame(user).setVisible(true);
+                new UserMainFrame(user).setVisible(true);
             } else { // 管理员
-//                new AdminMainFrame(user).setVisible(true);
+                new AdminMainFrame(user).setVisible(true);
             }
         } else {
             JOptionPane.showMessageDialog(this,

@@ -11,7 +11,7 @@ public class UserService {
 
     public boolean register(User user) {
         // 1. 验证学号格式
-        if (!user.getUsername().matches("^\\d{10}$")) {
+        if (!user.getUsername().matches("^\\d{12}$")) {
             JOptionPane.showMessageDialog(null, "学号格式不正确");
             return false;
         }
