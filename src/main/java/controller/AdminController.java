@@ -23,4 +23,8 @@ public class AdminController {
     public void showCompetitionArrangement() {
         JOptionPane.showMessageDialog(null, "开始比赛编排");
     }
+
+    public void showCollegeManagement(){
+        JOptionPane.showMessageDialog(null, "修改院系");
+    }
 }
