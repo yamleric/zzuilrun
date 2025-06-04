@@ -15,25 +15,22 @@ public class CollegeService {
     private final CollegeDao collegeDao = new CollegeDaoImpl();
 
     public List<String> getAllColleges() {
-        return collegeDao.getAllCollegeNames();
+        return collegeDao.getAllColleges();
+    }
+
+    public int getCollegeIdByName(String collegeName) {
+        return collegeDao.getCollegeIdByName(collegeName);
     }
 
     public boolean addCollege(String collegeName) {
         return collegeDao.addCollege(collegeName);
     }
 
-    public boolean deleteCollege(String collegeName) {
-        return collegeDao.deleteCollegeByName(collegeName);
+    public boolean updateCollege(String oldName, String newName) {
+        return collegeDao.updateCollege(oldName, newName);
     }
 
-    // 如果需要此方法
-    public int getCollegeIdByName(String name) {
-        return collegeDao instanceof CollegeDaoImpl ?
-                ((CollegeDaoImpl) collegeDao).getCollegeIdByName(name) : -1;
-    }
-    // 新增：检查院系是否可以安全删除
-    public boolean canDeleteCollege(String collegeName) {
-        // MVP阶段简化处理：总是返回true
-        return true;
+    public boolean deleteCollege(String collegeName) {
+        return collegeDao.deleteCollege(collegeName);
     }
 }

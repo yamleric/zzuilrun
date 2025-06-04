@@ -8,7 +8,9 @@ import java.util.List;
  * 院系数据访问对象接口
  */
 public interface CollegeDao {
-    List<String> getAllCollegeNames();
+    List<String> getAllColleges();
+    int getCollegeIdByName(String collegeName);
     boolean addCollege(String collegeName);
-    boolean deleteCollegeByName(String collegeName);
+    boolean updateCollege(String oldName, String newName);
+    boolean deleteCollege(String collegeName);
 }

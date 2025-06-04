@@ -39,11 +39,12 @@ public class DatabaseUtil {
         }
     }
     public static void initColleges() {
-        String sql = "INSERT INTO colleges (college_id, college_name, college_code, status) VALUES "
-                + "(1, '计算机学院', '001', 1), "
-                + "(2, '电气学院', '002', 1), "
-                + "(3, '机械学院', '003', 1) "
-                + "ON DUPLICATE KEY UPDATE college_name = VALUES(college_name)";
+        String sql = "INSERT INTO colleges (college_name, college_code, status) VALUES "
+                + "('计算机学院', '001', 1), "
+                + "('电气学院', '002', 1), "
+                + "('机械学院', '003', 1), "
+                + "('软件学院', '004', 1) "
+                + "ON DUPLICATE KEY UPDATE college_name = VALUES(college_name), college_code = VALUES(college_code)";
 
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement()) {
@@ -71,6 +72,40 @@ public class DatabaseUtil {
     }
 
     public static String fetchCollegeName(int collegeId) {
-        return "0";
+        String sql = "SELECT college_name FROM colleges WHERE college_id = ?";
+
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, collegeId);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("college_name");
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("获取学院名称失败 (ID: " + collegeId + "): " + e.getMessage());
+        }
+
+        return "未知学院"; // 默认返回值
     }
+    // 在DatabaseUtil类中实现
+    public static String fetchCollegeCode(String collegeName) {
+        String sql = "SELECT college_code FROM colleges WHERE college_name = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, collegeName);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("college_code");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "CODE-UNKNOWN";
+    }
+
 }

@@ -1,86 +1,130 @@
 package dao;
 
 import util.DatabaseUtil;
-import java.sql.*;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class CollegeDaoImpl implements CollegeDao {
-    // SQL 语句
-    private static final String GET_ALL_COLLEGES = "SELECT college_name FROM colleges ORDER BY college_name";
-    private static final String ADD_COLLEGE = "INSERT INTO colleges (college_name) VALUES (?)";
-    private static final String DELETE_COLLEGE = "DELETE FROM colleges WHERE college_name = ?";
-    private static final String GET_COLLEGE_ID = "SELECT id FROM colleges WHERE college_name = ?";
 
     @Override
-    public List<String> getAllCollegeNames() {
+    public List<String> getAllColleges() {
         List<String> colleges = new ArrayList<>();
+        String sql = "SELECT college_name FROM colleges WHERE status = 1";
 
         try (Connection conn = DatabaseUtil.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(GET_ALL_COLLEGES)) {
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
 
             while (rs.next()) {
                 colleges.add(rs.getString("college_name"));
             }
         } catch (SQLException e) {
-            System.err.println("数据库错误: " + e.getMessage());
+            e.printStackTrace();
         }
         return colleges;
     }
 
     @Override
-    public boolean addCollege(String collegeName) {
-        if (collegeName == null || collegeName.trim().isEmpty()) {
-            return false;
-        }
+    public int getCollegeIdByName(String collegeName) {
+        String sql = "SELECT college_id FROM colleges WHERE college_name = ?";
 
         try (Connection conn = DatabaseUtil.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(ADD_COLLEGE)) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, collegeName.trim());
-            return pstmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            System.err.println("添加院系失败: " + collegeName + " - " + e.getMessage());
-            return false;
-        }
-    }
+            stmt.setString(1, collegeName);
 
-    @Override
-    public boolean deleteCollegeByName(String collegeName) {
-        if (collegeName == null || collegeName.trim().isEmpty()) {
-            return false;
-        }
-
-        try (Connection conn = DatabaseUtil.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(DELETE_COLLEGE)) {
-
-            pstmt.setString(1, collegeName.trim());
-            return pstmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            System.err.println("删除院系失败: " + collegeName + " - " + e.getMessage());
-            return false;
-        }
-    }
-
-    // 如果需要此方法，请保持签名一致
-    public int getCollegeIdByName(String name) {
-        if (name == null || name.trim().isEmpty()) {
-            return -1;
-        }
-
-        try (Connection conn = DatabaseUtil.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(GET_COLLEGE_ID)) {
-
-            pstmt.setString(1, name.trim());
-            try (ResultSet rs = pstmt.executeQuery()) {
+            try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    return rs.getInt("id");
+                    return rs.getInt("college_id");
                 }
             }
         } catch (SQLException e) {
-            System.err.println("获取院系ID失败: " + name + " - " + e.getMessage());
+            e.printStackTrace();
         }
-        return -1;
+        return -1; // 未找到
+    }
+    @Override
+    public boolean addCollege(String collegeName) {
+        String sql = "INSERT INTO colleges (college_name, description) VALUES (?, '新添加院系')";
+
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, collegeName);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            if (e.getSQLState().equals("23000")) {
+                // 唯一约束违反（重复院系名）
+                return false;
+            }
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    @Override
+    public boolean updateCollege(String oldName, String newName) {
+        String sql = "UPDATE colleges SET college_name = ? WHERE college_name = ?";
+
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, newName);
+            stmt.setString(2, oldName);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            if (e.getSQLState().equals("23000")) {
+                // 唯一约束违反（院系名已存在）
+                return false;
+            }
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    @Override
+    public boolean deleteCollege(String collegeName) {
+        // 检查是否有用户关联到此院系
+        if (hasAssociatedUsers(collegeName)) {
+            return false;
+        }
+
+        // 软删除：设置状态为0（停用）
+        String sql = "UPDATE colleges SET status = 0 WHERE college_name = ?";
+
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, collegeName);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    private boolean hasAssociatedUsers(String collegeName) {
+        String sql = "SELECT COUNT(*) FROM users u " +
+                "JOIN colleges c ON u.college_id = c.college_id " +
+                "WHERE c.college_name = ?";
+
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, collegeName);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 }

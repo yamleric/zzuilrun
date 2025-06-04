@@ -28,7 +28,9 @@ public class RegisterFrame extends JFrame {
         setSize(500, 450);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
-        setIconImage(new ImageIcon(getClass().getResource("/icons/register_icon.png")).getImage());
+
+        // 移除了图标设置
+        // setIconImage(new ImageIcon(getClass().getResource("/icons/register_icon.png")).getImage());
 
         initUI();
         loadCollegesFromDB();
@@ -160,24 +162,26 @@ public class RegisterFrame extends JFrame {
     }
 
     private void addInputValidation() {
-        // 学号格式验证（12位数字）
-        usernameField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            public void changedUpdate(javax.swing.event.DocumentEvent e) { validateInput(); }
-            public void insertUpdate(javax.swing.event.DocumentEvent e) { validateInput(); }
-            public void removeUpdate(javax.swing.event.DocumentEvent e) { validateInput(); }
-        });
+        // 为所有字段添加监听器
+        javax.swing.event.DocumentListener listener = new javax.swing.event.DocumentListener() {
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { validateAll(); }
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { validateAll(); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { validateAll(); }
+        };
 
-        // 密码强度验证
-        passwordField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            public void changedUpdate(javax.swing.event.DocumentEvent e) { validateInput(); }
-            public void insertUpdate(javax.swing.event.DocumentEvent e) { validateInput(); }
-            public void removeUpdate(javax.swing.event.DocumentEvent e) { validateInput(); }
-        });
+        usernameField.getDocument().addDocumentListener(listener);
+        passwordField.getDocument().addDocumentListener(listener);
+        phoneField.getDocument().addDocumentListener(listener);
+        emailField.getDocument().addDocumentListener(listener);
     }
 
-    private void validateInput() {
+    // 整体验证逻辑
+    private void validateAll() {
         String username = usernameField.getText().trim();
         String password = new String(passwordField.getPassword()).trim();
+        String phone = phoneField.getText().trim();
+        String email = emailField.getText().trim();
+
         StringBuilder errors = new StringBuilder();
 
         // 学号验证
@@ -192,10 +196,22 @@ public class RegisterFrame extends JFrame {
             errors.append("密码不能为空。 ");
         } else if (password.length() < 8) {
             errors.append("密码至少需要8位字符。 ");
-        } else if (!password.matches(".*[a-zA-Z]+.*")) {
+        } else if (!password.matches(".*[a-zA-Z].*")) {
             errors.append("密码需包含字母。 ");
-        } else if (!password.matches(".*\\d+.*")) {
+        } else if (!password.matches(".*\\d.*")) {
             errors.append("密码需包含数字。 ");
+        }
+
+        // 邮箱验证
+        if (email.isEmpty()) {
+            errors.append("邮箱不能为空。 ");
+        } else if (!email.matches("^[\\w-.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
+            errors.append("邮箱格式不正确。 ");
+        }
+
+        // 手机号验证（非必填，如果填写则验证格式）
+        if (!phone.isEmpty() && !phone.matches("^1[3-9]\\d{9}$")) {
+            errors.append("手机号格式不正确。 ");
         }
 
         validationLabel.setText(errors.toString().trim());
@@ -241,28 +257,31 @@ public class RegisterFrame extends JFrame {
         String phone = phoneField.getText().trim();
         String email = emailField.getText().trim();
 
-        // 基本输入验证
-        if (!validateInputFields(username, password, email)) {
+        // 整体验证
+        validateAll();
+        if (!validationLabel.getText().isEmpty()) {
             return;
         }
 
         // 创建用户对象
         User user = createUser(username, password, realName, gender, collegeName, phone, email);
 
-        // 创建加载对话框（使用final修饰确保线程安全）
-        final JDialog loadingDialog = new JDialog(this, "", true);
-        loadingDialog.setUndecorated(true);
-        loadingDialog.setSize(100, 100);
+        // 创建加载对话框（简化版）
+        final JDialog loadingDialog = new JDialog(this, "正在注册", false); // 改为非模态对话框
+        loadingDialog.setSize(200, 100);
         loadingDialog.setLocationRelativeTo(this);
-
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         JLabel label = new JLabel("处理中...", SwingConstants.CENTER);
-        label.setIcon(new ImageIcon(getClass().getResource("/icons/loading.gif")));
         panel.add(label, BorderLayout.CENTER);
         loadingDialog.add(panel);
 
+        // 使用计时器控制对话框显示时间
+        Timer timer = new Timer(1000, evt -> loadingDialog.dispose());
+        timer.setRepeats(false); // 只执行一次
+
         loadingDialog.setVisible(true);
+        timer.start();
 
         // 在后台线程中执行注册操作
         new Thread(() -> {
@@ -275,61 +294,24 @@ public class RegisterFrame extends JFrame {
                 errorMessage = ex.getMessage();
             } finally {
                 // 确保UI更新在主线程执行
-                boolean finalSuccess = success;
-                String finalErrorMessage = errorMessage;
+                final boolean finalSuccess = success;
+                final String finalErrorMessage = errorMessage;
                 SwingUtilities.invokeLater(() -> {
-                    loadingDialog.dispose();
+                    if (loadingDialog.isVisible()) {
+                        loadingDialog.dispose();
+                    }
 
                     if (finalSuccess) {
                         showSuccessMessage();
                     } else {
-                        if (finalErrorMessage.isEmpty()) {
-                            validationLabel.setText("注册失败：用户名可能已存在");
-                        } else {
-                            validationLabel.setText("注册失败: " + finalErrorMessage);
-                        }
+                        String errorMsg = finalErrorMessage.isEmpty()
+                                ? "注册失败：用户名可能已存在"
+                                : "注册失败: " + finalErrorMessage;
+                        validationLabel.setText(errorMsg);
                     }
                 });
             }
         }).start();
-    }
-
-    private boolean validateInputFields(String username, String password, String email) {
-        // 检查必填字段
-        if (username.isEmpty() || password.isEmpty() || email.isEmpty()) {
-            validationLabel.setText("学号、密码和邮箱是必填项");
-            return false;
-        }
-
-        // 学号格式验证
-        if (!username.matches("^\\d{12}$")) {
-            validationLabel.setText("学号必须是12位数字");
-            return false;
-        }
-
-        // 密码强度验证
-        if (password.length() < 8) {
-            validationLabel.setText("密码至少需要8位字符");
-            return false;
-        }
-
-        if (!password.matches(".*[a-zA-Z]+.*")) {
-            validationLabel.setText("密码需包含字母");
-            return false;
-        }
-
-        if (!password.matches(".*\\d+.*")) {
-            validationLabel.setText("密码需包含数字");
-            return false;
-        }
-
-        // 邮箱格式验证
-        if (!email.matches("^[\\w-.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
-            validationLabel.setText("邮箱格式不正确");
-            return false;
-        }
-
-        return true;
     }
 
     private User createUser(String username, String password, String realName,
@@ -339,14 +321,21 @@ public class RegisterFrame extends JFrame {
         user.setPassword(password);
         user.setRealName(realName);
         user.setGender(gender);
-        user.setCollegeId(collegeService.getCollegeIdByName(collegeName));
         user.setPhone(phone);
         user.setEmail(email);
-        user.setRole(1);
-        user.setStatus(1);
+        user.setRole(1);      // 普通用户角色
+        user.setStatus(1);    // 用户状态正常
+
+        // 设置学院ID
+        if (collegeName != null && !collegeName.isEmpty()) {
+            int collegeId = collegeService.getCollegeIdByName(collegeName);
+            user.setCollegeId(collegeId != -1 ? collegeId : 1); // 设置默认学院ID为1（如果找不到）
+        } else {
+            user.setCollegeId(1); // 默认学院ID
+        }
+
         return user;
     }
-
     private void showSuccessMessage() {
         JOptionPane.showMessageDialog(
                 this,
