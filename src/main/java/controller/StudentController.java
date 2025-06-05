@@ -1,28 +1,49 @@
+// controller/StudentController.java
 package controller;
 
+import model.Enrollment;
+import model.Event;
+import model.User;
 import service.EnrollmentService;
-//import view.EnrollmentView;
-import view.UserProfileFrame;
+import view.EnrollmentView;
+import view.MyEnrollmentsView;
 
-import javax.swing.*;
+import java.util.List;
 
 public class StudentController {
-    private final int studentId;
+    private final User currentUser;
     private final EnrollmentService enrollmentService;
 
-    public StudentController(int studentId) {
-        this.studentId = studentId;
+    public StudentController(User user) {
+        this.currentUser = user;
         this.enrollmentService = new EnrollmentService();
     }
 
     public void showEnrollmentView() {
-        // 实际实现会创建EnrollmentView实例
-        JOptionPane.showMessageDialog(null, "显示报名界面 - 学生ID: " + studentId);
+        new EnrollmentView(this, currentUser).setVisible(true);
     }
 
     public void showMyEnrollments() {
-        // 显示已报名的活动
-        int count = enrollmentService.getEnrollmentsCount(studentId);
-        JOptionPane.showMessageDialog(null, "已报名活动数量: " + count);
+        new MyEnrollmentsView(this, currentUser).setVisible(true);
+    }
+
+    public List<Event> getAvailableEvents() {
+        return enrollmentService.getAvailableEvents();
+    }
+
+    public boolean enrollToEvent(int eventId) {
+        return enrollmentService.enrollUserToEvent(currentUser, eventId);
+    }
+
+    public List<Enrollment> getUserEnrollments() {
+        return enrollmentService.getUserEnrollments(currentUser.getUserId());
+    }
+
+    public boolean cancelEnrollment(int enrollmentId) {
+        return enrollmentService.cancelEnrollment(enrollmentId);
+    }
+
+    public int getEnrollmentsCount() {
+        return enrollmentService.getEnrollmentsCount(currentUser.getUserId());
     }
 }

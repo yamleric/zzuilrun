@@ -12,10 +12,11 @@ import java.awt.event.ActionEvent;
 public class UserMainFrame extends JFrame {
     private final User currentUser;
     private final StudentController studentController;
+    private JLabel statusLabel; // 保存状态标签引用以便更新
 
     public UserMainFrame(User user) {
         this.currentUser = user;
-        this.studentController = new StudentController(user.getUserId());
+        this.studentController = new StudentController(user);
         initUI();
     }
 
@@ -77,6 +78,7 @@ public class UserMainFrame extends JFrame {
         buttonPanel.setLayout(new GridLayout(1, 3, 20, 0));
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(40, 50, 40, 50));
 
+        // 修复：使用正确的studentController变量
         JButton enrollButton = createFeatureButton("活动报名", "报名参加各类活动");
         enrollButton.addActionListener(e -> studentController.showEnrollmentView());
 
@@ -93,10 +95,19 @@ public class UserMainFrame extends JFrame {
         // 状态栏
         JPanel statusPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         statusPanel.setBorder(BorderFactory.createEtchedBorder());
-        EnrollmentService enrollmentService = new EnrollmentService();
-        int enrolledCount = enrollmentService.getEnrollmentsCount(currentUser.getUserId());
-        JLabel statusLabel = new JLabel("已报名活动: " + enrolledCount);
+
+        // 修复：使用studentController获取报名数量
+        int enrolledCount = studentController.getEnrollmentsCount();
+        statusLabel = new JLabel("已报名活动: " + enrolledCount);
         statusPanel.add(statusLabel);
+
+        // 添加刷新按钮
+        JButton refreshStatusButton = new JButton("刷新");
+        refreshStatusButton.addActionListener(e -> {
+            int updatedCount = studentController.getEnrollmentsCount();
+            statusLabel.setText("已报名活动: " + updatedCount);
+        });
+        statusPanel.add(refreshStatusButton);
 
         add(welcomePanel, BorderLayout.NORTH);
         add(buttonPanel, BorderLayout.CENTER);
@@ -104,7 +115,6 @@ public class UserMainFrame extends JFrame {
     }
 
     private String getCollegeName() {
-        // 从数据库获取学院名称
         try {
             return DatabaseUtil.fetchCollegeName(currentUser.getCollegeId());
         } catch (Exception e) {

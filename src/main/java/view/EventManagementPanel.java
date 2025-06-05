@@ -7,6 +7,9 @@ import service.EventService;
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
 import java.awt.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 public class EventManagementPanel extends JPanel {
@@ -70,8 +73,11 @@ public class EventManagementPanel extends JPanel {
     }
 
     private void showAddEventDialog() {
-        // 实现添加对话框
-        EventDetailDialog dialog = new EventDetailDialog(SwingUtilities.getWindowAncestor(this), null);
+        EventDetailDialog dialog = new EventDetailDialog(
+                SwingUtilities.getWindowAncestor(this),
+                null,
+                eventService
+        );
         dialog.setVisible(true);
         if (dialog.isSaved()) {
             loadEvents();
@@ -81,8 +87,14 @@ public class EventManagementPanel extends JPanel {
     private void editSelectedEvent(JTable table) {
         int selectedRow = table.getSelectedRow();
         if (selectedRow != -1) {
+            // 修复：使用 tableModel.getEventAt() 方法
             Event event = tableModel.getEventAt(table.convertRowIndexToModel(selectedRow));
-            EventDetailDialog dialog = new EventDetailDialog(SwingUtilities.getWindowAncestor(this), event);
+
+            EventDetailDialog dialog = new EventDetailDialog(
+                    SwingUtilities.getWindowAncestor(this),
+                    event,
+                    eventService
+            );
             dialog.setVisible(true);
             if (dialog.isSaved()) {
                 loadEvents();
@@ -109,6 +121,7 @@ public class EventManagementPanel extends JPanel {
         if (confirm == JOptionPane.YES_OPTION) {
             for (int i = selectedRows.length - 1; i >= 0; i--) {
                 int modelRow = table.convertRowIndexToModel(selectedRows[i]);
+                // 修复：使用 tableModel.getEventAt() 方法
                 Event event = tableModel.getEventAt(modelRow);
                 eventService.deleteEvent(event.getEventId());
             }
@@ -124,7 +137,7 @@ public class EventManagementPanel extends JPanel {
         JOptionPane.showMessageDialog(this, "导出功能待实现", "提示", JOptionPane.INFORMATION_MESSAGE);
     }
 
-    // 项目表格模型
+    // 事件表格模型（已修复所有问题）
     class EventTableModel extends AbstractTableModel {
         private final String[] COLUMN_NAMES = {
                 "项目ID", "项目名称", "类型", "性别限制",
@@ -132,50 +145,60 @@ public class EventManagementPanel extends JPanel {
                 "地点", "状态"
         };
 
-        private List<Event> events;
+        private List<Event> events = new ArrayList<>();
 
         public void setEvents(List<Event> events) {
-            this.events = events;
+            this.events = events != null ? events : new ArrayList<>();
             fireTableDataChanged();
         }
 
-        public Event getEventAt(int row) {
-            return events.get(row);
+        // 添加缺失的 getEventAt() 方法
+        public Event getEventAt(int rowIndex) {
+            return events.get(rowIndex);
         }
 
+        // 实现 getRowCount() 方法
         @Override
         public int getRowCount() {
-            return events == null ? 0 : events.size();
+            return events.size();
         }
 
+        // 实现 getColumnCount() 方法
         @Override
         public int getColumnCount() {
             return COLUMN_NAMES.length;
         }
 
+        // 实现 getColumnName() 方法
         @Override
         public String getColumnName(int column) {
             return COLUMN_NAMES[column];
         }
 
-        // 在 EventTableModel 中
+        // 实现 getValueAt() 方法
         @Override
         public Object getValueAt(int rowIndex, int columnIndex) {
+            if (rowIndex >= events.size() || rowIndex < 0) {
+                return null;
+            }
+
             Event event = events.get(rowIndex);
             switch (columnIndex) {
                 case 0: return event.getEventId();
                 case 1: return event.getEventName();
-                case 2: return event.getEventTypeName(); // 使用辅助方法
-                case 3: return event.getGenderLimitName(); // 使用辅助方法
+                case 2: return getEventTypeName(event.getEventType());
+                case 3: return getGenderLimitName(event.getGenderLimit());
                 case 4: return event.getMinParticipants();
                 case 5: return event.getMaxParticipants();
-                case 6: return event.getStartTime();
-                case 7: return event.getEndTime();
+                case 6: return formatDateTime(event.getStartTime());
+                case 7: return formatDateTime(event.getEndTime());
                 case 8: return event.getLocation();
-                case 9: return event.getStatusName(); // 使用辅助方法
+                case 9: return getStatusName(event.getStatus());
                 default: return null;
             }
         }
+
+        // 事件类型转换
         private String getEventTypeName(int type) {
             switch (type) {
                 case 1: return "田径";
@@ -184,6 +207,24 @@ public class EventManagementPanel extends JPanel {
                 case 4: return "体操";
                 default: return "其他";
             }
+        }
+
+        // 性别限制转换
+        private String getGenderLimitName(String limit) {
+            if ("M".equals(limit)) return "男";
+            if ("F".equals(limit)) return "女";
+            return "无限制";
+        }
+
+        // 状态转换
+        private String getStatusName(int status) {
+            return status == 1 ? "启用" : "禁用";
+        }
+
+        // 格式化日期时间
+        private String formatDateTime(LocalDateTime dateTime) {
+            if (dateTime == null) return "未设置";
+            return dateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
         }
     }
 }

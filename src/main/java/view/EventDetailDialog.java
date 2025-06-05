@@ -1,6 +1,7 @@
 package view;
 
 import model.Event;
+import service.EventService;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -13,6 +14,7 @@ import java.time.format.DateTimeParseException;
 
 public class EventDetailDialog extends JDialog {
     private Event event;
+    private final EventService eventService;
     private boolean saved = false;
 
     // 日期时间格式和解析器
@@ -36,9 +38,11 @@ public class EventDetailDialog extends JDialog {
     private JComboBox<String> statusComboBox;
     private JLabel timeErrorLabel;
 
-    public EventDetailDialog(Window owner, Event event) {
+    // 修改构造函数，接收EventService
+    public EventDetailDialog(Window owner, Event event, EventService eventService) {
         super(owner, event == null ? "添加比赛项目" : "编辑比赛项目", ModalityType.APPLICATION_MODAL);
         this.event = event == null ? new Event() : event;
+        this.eventService = eventService;
 
         setSize(600, 600);
         setLocationRelativeTo(owner);
@@ -76,21 +80,30 @@ public class EventDetailDialog extends JDialog {
     }
 
     private JPanel createFormPanel() {
-        JPanel formPanel = new JPanel(new GridLayout(0, 2, 10, 10));
+        JPanel formPanel = new JPanel();
+        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
+        formPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         // 项目名称
-        formPanel.add(new JLabel("项目名称:"));
-        nameField = new JTextField(event.getEventName());
-        formPanel.add(nameField);
+        JPanel namePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        namePanel.add(new JLabel("项目名称:"));
+        nameField = new JTextField(event.getEventName(), 20);
+        namePanel.add(nameField);
+        formPanel.add(namePanel);
 
         // 项目类型
-        formPanel.add(new JLabel("项目类型:"));
+        JPanel typePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        typePanel.add(new JLabel("项目类型:"));
         typeComboBox = new JComboBox<>(new String[]{"田径", "游泳", "球类", "体操", "其他"});
-        typeComboBox.setSelectedIndex(event.getEventType());
-        formPanel.add(typeComboBox);
+        if (event.getEventType() >= 0 && event.getEventType() <= 4) {
+            typeComboBox.setSelectedIndex(event.getEventType());
+        }
+        typePanel.add(typeComboBox);
+        formPanel.add(typePanel);
 
         // 性别限制
-        formPanel.add(new JLabel("性别限制:"));
+        JPanel genderPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        genderPanel.add(new JLabel("性别限制:"));
         genderLimitComboBox = new JComboBox<>(new String[]{"男", "女", "不限"});
         if (event.getGenderLimit() != null) {
             switch (event.getGenderLimit()) {
@@ -99,11 +112,15 @@ public class EventDetailDialog extends JDialog {
                 default: genderLimitComboBox.setSelectedItem("不限");
             }
         }
-        formPanel.add(genderLimitComboBox);
+        genderPanel.add(genderLimitComboBox);
+        formPanel.add(genderPanel);
 
-// 最小人数
-        formPanel.add(new JLabel("最小人数:"));
-// 如果event中的最小人数有效，使用该值；否则使用1
+        // 人数设置面板
+        JPanel participantsPanel = new JPanel();
+        participantsPanel.setLayout(new GridLayout(2, 2, 5, 5));
+
+        // 最小人数
+        participantsPanel.add(new JLabel("最小人数:"));
         int minPartValue = event.getMinParticipants() > 0 ? event.getMinParticipants() : 1;
         minParticipantsSpinner = new JSpinner(new SpinnerNumberModel(
                 minPartValue,
@@ -111,96 +128,106 @@ public class EventDetailDialog extends JDialog {
                 100,
                 1
         ));
-        formPanel.add(minParticipantsSpinner);
+        participantsPanel.add(minParticipantsSpinner);
 
-// 最大人数
-        formPanel.add(new JLabel("最大人数:"));
-// 确保初始最大值不小于最小值
+        // 最大人数
+        participantsPanel.add(new JLabel("最大人数:"));
         int maxPartValue = Math.max(event.getMaxParticipants(), minPartValue);
         maxParticipantsSpinner = new JSpinner(new SpinnerNumberModel(
                 maxPartValue,
-                minPartValue, // 最小值设置为当前的最小人数值
+                minPartValue,
                 100,
                 1
         ));
-        formPanel.add(maxParticipantsSpinner);
+        participantsPanel.add(maxParticipantsSpinner);
 
-// 确保最小人数 <= 最大人数
+        // 人数关联逻辑
         minParticipantsSpinner.addChangeListener(e -> {
             int min = (Integer) minParticipantsSpinner.getValue();
-            int currentMax = (Integer) maxParticipantsSpinner.getValue();
-
-            // 如果当前最大值小于新的最小值，则更新为新的最小值
-            if (currentMax < min) {
-                maxParticipantsSpinner.setValue(min);
-            }
-
-            // 更新最大值微调器的最小值限制
             SpinnerNumberModel maxModel = (SpinnerNumberModel) maxParticipantsSpinner.getModel();
             maxModel.setMinimum(min);
+            if ((Integer) maxModel.getValue() < min) {
+                maxModel.setValue(min);
+            }
         });
-        formPanel.add(maxParticipantsSpinner);
 
-        // 开始日期
-        formPanel.add(new JLabel("开始日期 (yyyy-MM-dd):"));
-        JPanel startDatePanel = new JPanel(new GridLayout(1, 2));
-        startDateField = new JTextField();
+        formPanel.add(participantsPanel);
+
+        // 开始时间面板
+        JPanel startTimePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        startTimePanel.add(new JLabel("开始时间:"));
+        startDateField = new JTextField(10);
+        startDateField.setToolTipText("格式: yyyy-MM-dd");
         if (event.getStartTime() != null) {
             startDateField.setText(event.getStartTime().format(DATE_FORMATTER));
         }
-        startDatePanel.add(startDateField);
-        startDatePanel.add(new JLabel("时间 (HH:mm):"));
-        startTimeField = new JTextField(event.getStartTime() != null ?
-                event.getStartTime().toLocalTime().toString().substring(0, 5) : "");
-        startDatePanel.add(startTimeField);
-        formPanel.add(startDatePanel);
+        startTimePanel.add(startDateField);
 
-        // 结束日期
-        formPanel.add(new JLabel("结束日期 (yyyy-MM-dd):"));
-        JPanel endDatePanel = new JPanel(new GridLayout(1, 2));
-        endDateField = new JTextField();
+        startTimePanel.add(new JLabel("时间:"));
+        startTimeField = new JTextField(5);
+        startTimeField.setToolTipText("格式: HH:mm");
+        if (event.getStartTime() != null) {
+            startTimeField.setText(String.format("%02d:%02d",
+                    event.getStartTime().getHour(), event.getStartTime().getMinute()));
+        }
+        startTimePanel.add(startTimeField);
+        formPanel.add(startTimePanel);
+
+        // 结束时间面板
+        JPanel endTimePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        endTimePanel.add(new JLabel("结束时间:"));
+        endDateField = new JTextField(10);
+        endDateField.setToolTipText("格式: yyyy-MM-dd");
         if (event.getEndTime() != null) {
             endDateField.setText(event.getEndTime().format(DATE_FORMATTER));
         }
-        endDatePanel.add(endDateField);
-        endDatePanel.add(new JLabel("时间 (HH:mm):"));
-        endTimeField = new JTextField(event.getEndTime() != null ?
-                event.getEndTime().toLocalTime().toString().substring(0, 5) : "");
-        endDatePanel.add(endTimeField);
-        formPanel.add(endDatePanel);
+        endTimePanel.add(endDateField);
+
+        endTimePanel.add(new JLabel("时间:"));
+        endTimeField = new JTextField(5);
+        endTimeField.setToolTipText("格式: HH:mm");
+        if (event.getEndTime() != null) {
+            endTimeField.setText(String.format("%02d:%02d",
+                    event.getEndTime().getHour(), event.getEndTime().getMinute()));
+        }
+        endTimePanel.add(endTimeField);
+        formPanel.add(endTimePanel);
 
         // 添加时间输入监听器
         addDateTimeListeners();
 
         // 地点
-        formPanel.add(new JLabel("地点:"));
-        locationField = new JTextField(event.getLocation());
-        formPanel.add(locationField);
+        JPanel locationPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        locationPanel.add(new JLabel("地点:"));
+        locationField = new JTextField(event.getLocation(), 20);
+        locationPanel.add(locationField);
+        formPanel.add(locationPanel);
 
         // 描述
-        formPanel.add(new JLabel("描述:"));
-        descriptionArea = new JTextArea(event.getDescription());
-        descriptionArea.setRows(3);
-        formPanel.add(new JScrollPane(descriptionArea));
+        JPanel descPanel = new JPanel(new BorderLayout());
+        descPanel.add(new JLabel("描述:"), BorderLayout.NORTH);
+        descriptionArea = new JTextArea(event.getDescription(), 5, 30);
+        descPanel.add(new JScrollPane(descriptionArea), BorderLayout.CENTER);
+        formPanel.add(descPanel);
 
         // 状态
-        formPanel.add(new JLabel("状态:"));
-        statusComboBox = new JComboBox<>(new String[]{"关闭", "开放报名", "已结束"});
+        JPanel statusPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        statusPanel.add(new JLabel("状态:"));
+        statusComboBox = new JComboBox<>(new String[]{"禁用", "启用"});
         statusComboBox.setSelectedIndex(event.getStatus());
-        formPanel.add(statusComboBox);
+        statusPanel.add(statusComboBox);
+        formPanel.add(statusPanel);
 
         return formPanel;
     }
 
     private void addDateTimeListeners() {
-        // 用于共享的文档监听器
         DocumentListener timeListener = new DocumentListener() {
             @Override public void changedUpdate(DocumentEvent e) { validateDateTime(); }
             @Override public void insertUpdate(DocumentEvent e) { validateDateTime(); }
             @Override public void removeUpdate(DocumentEvent e) { validateDateTime(); }
         };
 
-        // 添加监听器到所有日期时间字段
         startDateField.getDocument().addDocumentListener(timeListener);
         startTimeField.getDocument().addDocumentListener(timeListener);
         endDateField.getDocument().addDocumentListener(timeListener);
@@ -209,42 +236,38 @@ public class EventDetailDialog extends JDialog {
 
     private void validateDateTime() {
         try {
-            // 解析开始时间
             LocalDateTime startTime = parseDateTime(startDateField.getText(), startTimeField.getText());
-
-            // 解析结束时间
             LocalDateTime endTime = parseDateTime(endDateField.getText(), endTimeField.getText());
 
-            // 检查时间关系
-            if (startTime != null && endTime != null && endTime.isBefore(startTime)) {
-                timeErrorLabel.setText("结束时间不能早于开始时间");
+            if (startTime != null && endTime != null) {
+                if (endTime.isBefore(startTime)) {
+                    timeErrorLabel.setText("错误: 结束时间不能早于开始时间");
+                } else {
+                    timeErrorLabel.setText("");
+                }
             } else {
-                timeErrorLabel.setText(" ");
+                timeErrorLabel.setText("");
             }
         } catch (DateTimeParseException e) {
-            timeErrorLabel.setText("时间格式错误: " + e.getMessage());
+            timeErrorLabel.setText("错误: 时间格式无效 - 使用 yyyy-MM-dd HH:mm");
         }
     }
 
     private LocalDateTime parseDateTime(String datePart, String timePart) throws DateTimeParseException {
-        if (datePart == null || datePart.isEmpty() || timePart == null || timePart.isEmpty()) {
+        if ((datePart == null || datePart.isEmpty()) || (timePart == null || timePart.isEmpty())) {
             return null;
         }
 
-        String fullDateTime = datePart + " " + timePart;
-        return LocalDateTime.parse(fullDateTime, DATE_TIME_FORMATTER);
+        String dateTime = datePart + " " + timePart;
+        return LocalDateTime.parse(dateTime, DATE_TIME_FORMATTER);
     }
 
     private void saveEvent(ActionEvent e) {
         try {
-            // 验证并设置时间
-            validateAndSetTimes();
-
-            // 更新事件对象
+            // 设置基本字段
             event.setEventName(nameField.getText().trim());
             event.setEventType(typeComboBox.getSelectedIndex());
 
-            // 设置性别限制
             String genderOption = (String) genderLimitComboBox.getSelectedItem();
             if ("男".equals(genderOption)) event.setGenderLimit("M");
             else if ("女".equals(genderOption)) event.setGenderLimit("F");
@@ -256,35 +279,49 @@ public class EventDetailDialog extends JDialog {
             event.setDescription(descriptionArea.getText().trim());
             event.setStatus(statusComboBox.getSelectedIndex());
 
-            // 调用服务保存
-            saved = true;
-            dispose();
+            // 解析并验证时间
+            LocalDateTime startTime = parseDateTime(startDateField.getText(), startTimeField.getText());
+            LocalDateTime endTime = parseDateTime(endDateField.getText(), endTimeField.getText());
+
+            if (startTime != null && endTime != null) {
+                if (endTime.isBefore(startTime)) {
+                    throw new DateTimeParseException("结束时间早于开始时间", "", 0);
+                }
+                event.setStartTime(startTime);
+                event.setEndTime(endTime);
+            }
+
+            // 调用服务保存事件
+            if (event.getEventId() > 0) {
+                // 更新现有事件
+                saved = eventService.updateEvent(event);
+            } else {
+                // 插入新事件
+                int newId = eventService.insertEvent(event);
+                saved = newId > 0;
+            }
+
+            if (saved) {
+                dispose(); // 保存成功后关闭对话框
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "保存失败，请检查系统状态",
+                        "保存错误",
+                        JOptionPane.ERROR_MESSAGE);
+            }
 
         } catch (DateTimeParseException ex) {
-            timeErrorLabel.setText("时间格式错误: " + ex.getMessage());
-            JOptionPane.showMessageDialog(this, "请正确填写日期时间格式 (yyyy-MM-dd HH:mm)",
-                    "输入错误", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    private void validateAndSetTimes() throws DateTimeParseException {
-        // 设置开始时间
-        if (!startDateField.getText().isEmpty() && !startTimeField.getText().isEmpty()) {
-            String fullStart = startDateField.getText() + " " + startTimeField.getText();
-            event.setStartTime(LocalDateTime.parse(fullStart, DATE_TIME_FORMATTER));
-        }
-
-        // 设置结束时间
-        if (!endDateField.getText().isEmpty() && !endTimeField.getText().isEmpty()) {
-            String fullEnd = endDateField.getText() + " " + endTimeField.getText();
-            event.setEndTime(LocalDateTime.parse(fullEnd, DATE_TIME_FORMATTER));
-        }
-
-        // 验证时间顺序
-        if (event.getStartTime() != null && event.getEndTime() != null) {
-            if (event.getEndTime().isBefore(event.getStartTime())) {
-                throw new DateTimeParseException("结束时间早于开始时间", "", 0);
-            }
+            timeErrorLabel.setText("错误: 时间格式无效 - " + ex.getMessage());
+            JOptionPane.showMessageDialog(this,
+                    "请正确填写日期时间格式 (yyyy-MM-dd HH:mm)\n例如: 2023-10-15 14:30",
+                    "时间格式错误",
+                    JOptionPane.ERROR_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "保存时发生错误: " + ex.getMessage(),
+                    "系统错误",
+                    JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
         }
     }
 

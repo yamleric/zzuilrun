@@ -156,19 +156,30 @@ public class Event {
         }
     }
 
-    public String getGenderLimitName() {
-        switch (genderLimit) {
-            case GENDER_MALE: return "男";
-            case GENDER_FEMALE: return "女";
-            case GENDER_ANY: return "不限";
-            default: return "未知";
-        }
-    }
+
+//    public String getGenderLimitName() {
+//        switch (genderLimit) {
+//            case GENDER_MALE: return "男";
+//            case GENDER_FEMALE: return "女";
+//            case GENDER_ANY: return "不限";
+//            default: return "未知";
+//        }
+//    }
 
     // 数据库转换方法
     public void setFromDatabase(Timestamp start, Timestamp end, Timestamp create) {
         if (start != null) this.startTime = start.toLocalDateTime();
         if (end != null) this.endTime = end.toLocalDateTime();
         if (create != null) this.createTime = create.toLocalDateTime();
+    }
+    // 确保有 getGenderLimitName() 方法
+    public String getGenderLimitName() {
+        if (genderLimit == null) return "不限";
+        switch (genderLimit) {
+            case "M": return "男";
+            case "F": return "女";
+            case "A": return "不限";
+            default: return "未知";
+        }
     }
 }
