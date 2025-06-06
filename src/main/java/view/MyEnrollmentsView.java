@@ -82,7 +82,7 @@ public class MyEnrollmentsView extends JFrame {
 
             Object[] row = {
                     enrollment.getEnrollmentId(),
-                    enrollment.getEvent() != null ? enrollment.getEvent().getEventName() : "未知活动",
+                    enrollment.getEventName(),
                     enrollTime,
                     enrollment.getStatusName(), // 使用Enrollment的getStatusName
                     "取消"

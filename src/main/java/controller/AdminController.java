@@ -1,17 +1,47 @@
 package controller;
 
+import model.Enrollment;
+import service.ApprovalService;
+import service.ApprovalServiceImpl;
 import view.AdminMainFrame;
+import view.ApprovalView;
 import view.CollegeManagementPanel;
 import view.EventManagementPanel;
 import view.UserManagementPanel;
 
 import javax.swing.*;
+import java.util.List;
 
 public class AdminController {
     private final AdminMainFrame mainFrame;
+    private final ApprovalService approvalService = new ApprovalServiceImpl();
 
     public AdminController(AdminMainFrame mainFrame) {
         this.mainFrame = mainFrame;
+    }
+
+    // 显示报名审核视图
+    public void showApprovalView() {
+        mainFrame.removeAllCards();
+        // 创建报名审核面板
+        ApprovalView approvalView = new ApprovalView(this);
+        mainFrame.addCard("报名审核", approvalView);
+        mainFrame.showCard("报名审核");
+    }
+
+    // 获取待审核报名列表
+    public List<Enrollment> getPendingEnrollments() {
+        return approvalService.getPendingEnrollments();
+    }
+
+    // 批准报名
+    public boolean approveEnrollment(int enrollmentId) {
+        return approvalService.approveEnrollment(enrollmentId);
+    }
+
+    // 拒绝报名
+    public boolean rejectEnrollment(int enrollmentId) {
+        return approvalService.rejectEnrollment(enrollmentId);
     }
 
     public void showUserManagement() {
