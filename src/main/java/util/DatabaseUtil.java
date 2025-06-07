@@ -262,4 +262,21 @@ public class DatabaseUtil {
             return false;
         }
     }
+    public static int getCollegeIdByName(String collegeName) {
+        String sql = "SELECT college_id FROM colleges WHERE college_name = ?";
+
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, collegeName);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("college_id");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0; // 默认值
+    }
 }

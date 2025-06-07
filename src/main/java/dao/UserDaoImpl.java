@@ -131,4 +131,50 @@ public class UserDaoImpl implements UserDao {
         user.setCreateTime(rs.getTimestamp("create_time"));
         return user;
     }
+
+    @Override
+    public List<User> getAllUsers() {
+        List<User> users = new ArrayList<>();
+        String sql = "SELECT u.*, c.college_name FROM users u " +
+                "JOIN colleges c ON u.college_id = c.college_id " +
+                "ORDER BY u.user_id";
+
+        try (Connection conn = DatabaseUtil.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                User user = extractUserFromResultSet(rs);
+                user.setCollege(rs.getString("college_name")); // 设置学院名称
+                users.add(user);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return users;
+    }
+
+    @Override
+    public User getUserById(int userId) {
+        String sql = "SELECT u.*, c.college_name FROM users u " +
+                "LEFT JOIN colleges c ON u.college_id = c.college_id " +
+                "WHERE u.user_id = ?";
+
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, userId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    User user = extractUserFromResultSet(rs);
+                    user.setCollege(rs.getString("college_name"));
+                    return user;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
 }

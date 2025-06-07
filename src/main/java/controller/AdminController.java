@@ -1,10 +1,7 @@
 package controller;
 
 import model.*;
-import service.ApprovalService;
-import service.ApprovalServiceImpl;
-import service.ArrangementService; // 添加ArrangementService导入
-import service.EnrollmentStatsService;
+import service.*;
 import view.*;
 
 import javax.swing.*;
@@ -16,6 +13,7 @@ public class AdminController {
     private final ApprovalService approvalService = new ApprovalServiceImpl();
     private final ArrangementService arrangementService = new ArrangementService(); // 声明并初始化ArrangementService
     private final EnrollmentStatsService statsService = new EnrollmentStatsService();
+    private final UserService userService = new UserService();
 
     public AdminController(AdminMainFrame mainFrame) {
         this.mainFrame = mainFrame;
@@ -136,5 +134,29 @@ public class AdminController {
     // 设置比赛时间
     public void setGroupTime(ArrangementGroup group, LocalDateTime startTime) {
         group.setStartTime(startTime);
+    }
+
+    public List<User> getAllUsers() {
+        return userService.getAllUsers();
+    }
+
+    public boolean addUser(User user) {
+        return userService.addUser(user);
+    }
+
+    public boolean updateUser(User user) {
+        return userService.updateUser(user);
+    }
+
+    public boolean deleteUser(int userId) {
+        return userService.deleteUser(userId);
+    }
+
+    public boolean changeUserStatus(int userId, int status) {
+        return userService.changeUserStatus(userId, status);
+    }
+
+    public User getUserById(int userId) {
+        return userService.getUserById(userId);
     }
 }
