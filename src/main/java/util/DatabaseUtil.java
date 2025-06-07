@@ -30,6 +30,7 @@ public class DatabaseUtil {
             e.printStackTrace();
             return null;
         }
+
     }
     public static void closeConnection(Connection conn) {
         if (conn != null) {
@@ -66,8 +67,9 @@ public class DatabaseUtil {
         try (Connection conn = getConnection();
 
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            System.out.println("超级管理员初始化成功");
+
             pstmt.setString(1, BCrypt.hashpw("admin123", BCrypt.gensalt()));
+            System.out.println("超级管理员初始化成功");
             pstmt.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("初始化超级管理员失败", e);

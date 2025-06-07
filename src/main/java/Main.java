@@ -1,3 +1,4 @@
+import org.mindrot.jbcrypt.BCrypt;
 import view.LoginFrame;
 
 import javax.swing.*;

@@ -227,4 +227,23 @@ public class EventDaoImpl implements EventDao {
         System.err.println("错误信息: " + e.getMessage());
         e.printStackTrace();
     }
+    // 添加通过名称获取事件的方法
+    public Event getEventByName(String eventName) {
+        String sql = "SELECT * FROM events WHERE event_name = ?";
+
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, eventName);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return extractEventFromResultSet(rs);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
 }

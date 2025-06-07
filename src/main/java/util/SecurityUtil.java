@@ -14,4 +14,5 @@ public class SecurityUtil {
     public static boolean isPasswordValid(String password) {
         return password.matches("^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{8,}$");
     }
+
 }

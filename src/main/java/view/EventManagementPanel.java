@@ -5,8 +5,11 @@ import model.Event;
 import service.EventService;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileFilter;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.AbstractTableModel;
 import java.awt.*;
+import java.io.File;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -129,13 +132,13 @@ public class EventManagementPanel extends JPanel {
         }
     }
 
-    private void importEvents() {
-        JOptionPane.showMessageDialog(this, "导入功能待实现", "提示", JOptionPane.INFORMATION_MESSAGE);
-    }
-
-    private void exportEvents() {
-        JOptionPane.showMessageDialog(this, "导出功能待实现", "提示", JOptionPane.INFORMATION_MESSAGE);
-    }
+//    private void importEvents() {
+//        JOptionPane.showMessageDialog(this, "导入功能待实现", "提示", JOptionPane.INFORMATION_MESSAGE);
+//    }
+//
+//    private void exportEvents() {
+//        JOptionPane.showMessageDialog(this, "导出功能待实现", "提示", JOptionPane.INFORMATION_MESSAGE);
+//    }
 
     // 事件表格模型（已修复所有问题）
     class EventTableModel extends AbstractTableModel {
@@ -225,6 +228,74 @@ public class EventManagementPanel extends JPanel {
         private String formatDateTime(LocalDateTime dateTime) {
             if (dateTime == null) return "未设置";
             return dateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+        }
+    }
+    // view/EventManagementPanel.java
+    private void importEvents() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("选择导入文件");
+        fileChooser.setFileFilter(new FileNameExtensionFilter("CSV or Excel Files", "csv", "xlsx"));
+
+        int returnValue = fileChooser.showOpenDialog(this);
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            String filePath = selectedFile.getAbsolutePath();
+
+            try {
+                if (filePath.endsWith(".csv")) {
+                    eventService.importEventsFromCsv(filePath);
+                } else if (filePath.endsWith(".xlsx")) {
+                    eventService.importEventsFromExcel(filePath);
+                } else {
+                    JOptionPane.showMessageDialog(this, "不支持的文件格式", "错误", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                loadEvents(); // 刷新表格
+                JOptionPane.showMessageDialog(this, "导入成功", "成功", JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "导入失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void exportEvents() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("选择导出格式");
+        fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+
+        // 创建文件过滤器
+        FileNameExtensionFilter csvFilter = new FileNameExtensionFilter("CSV文件 (*.csv)", "csv");
+        FileNameExtensionFilter excelFilter = new FileNameExtensionFilter("Excel文件 (*.xlsx)", "xlsx");
+
+        fileChooser.addChoosableFileFilter(csvFilter);
+        fileChooser.addChoosableFileFilter(excelFilter);
+        fileChooser.setAcceptAllFileFilterUsed(false);
+
+        int returnValue = fileChooser.showSaveDialog(this);
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            String filePath = selectedFile.getAbsolutePath();
+
+            // 根据选择的文件过滤器添加文件扩展名
+            FileFilter fileFilter = fileChooser.getFileFilter();
+            if (fileFilter == csvFilter && !filePath.endsWith(".csv")) {
+                filePath += ".csv";
+            } else if (fileFilter == excelFilter && !filePath.endsWith(".xlsx")) {
+                filePath += ".xlsx";
+            }
+
+            try {
+                if (filePath.endsWith(".csv")) {
+                    eventService.exportEventsToCsv(filePath);
+                } else if (filePath.endsWith(".xlsx")) {
+                    eventService.exportEventsToExcel(filePath);
+                }
+                JOptionPane.showMessageDialog(this, "导出成功", "成功", JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "导出失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace();
+            }
         }
     }
 }

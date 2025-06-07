@@ -12,4 +12,8 @@ public interface EventDao {
     List<Event> getAvailableEvents();
     // 新增按ID查询方法
     Event getEventById(int eventId);
+    Event getEventByName(String eventName);
+
+
+
 }

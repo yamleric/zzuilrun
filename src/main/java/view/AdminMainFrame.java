@@ -193,9 +193,8 @@ public class AdminMainFrame extends JFrame {
 
         // 数据分析菜单
         JMenu analysisMenu = new JMenu("数据分析");
-        analysisMenu.setForeground(Color.WHITE);
         analysisMenu.add(createMenuItem("报名统计", e -> adminController.showEnrollmentStats()));
-        analysisMenu.add(createMenuItem("比赛编排", e -> adminController.showCompetitionArrangement()));
+        analysisMenu.add(createMenuItem("比赛编排", e -> adminController.showCompetitionArrangement())); // 新增
         menuBar.add(analysisMenu);
 
         // 系统菜单

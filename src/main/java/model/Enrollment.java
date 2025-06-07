@@ -11,6 +11,8 @@ public class Enrollment {
     private String eventName;
     private int status;
     private LocalDateTime enrollTime;
+    private User user; // 添加 User 引用
+
 
     // Getters and Setters
     public int getEnrollmentId() { return enrollmentId; }
@@ -37,6 +39,13 @@ public class Enrollment {
     public LocalDateTime getEnrollTime() { return enrollTime; }
     public void setEnrollTime(LocalDateTime enrollTime) { this.enrollTime = enrollTime; }
 
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
     // 状态名称
     public String getStatusName() {
         switch (status) {

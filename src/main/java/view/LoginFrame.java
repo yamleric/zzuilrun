@@ -127,6 +127,7 @@ public class LoginFrame extends JFrame {
         }
     }
 
+
     private void openMainWindow(User user) {
         if (user.getRole() == 2) {
 //            new AdminMainFrame(user).setVisible(true);

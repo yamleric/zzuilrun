@@ -1,20 +1,22 @@
 package controller;
 
+import model.ArrangementGroup;
 import model.Enrollment;
+import model.Event;
+import model.TrackAssignment;
 import service.ApprovalService;
 import service.ApprovalServiceImpl;
-import view.AdminMainFrame;
-import view.ApprovalView;
-import view.CollegeManagementPanel;
-import view.EventManagementPanel;
-import view.UserManagementPanel;
+import service.ArrangementService; // 添加ArrangementService导入
+import view.*;
 
 import javax.swing.*;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class AdminController {
     private final AdminMainFrame mainFrame;
     private final ApprovalService approvalService = new ApprovalServiceImpl();
+    private final ArrangementService arrangementService = new ArrangementService(); // 声明并初始化ArrangementService
 
     public AdminController(AdminMainFrame mainFrame) {
         this.mainFrame = mainFrame;
@@ -75,10 +77,10 @@ public class AdminController {
         JOptionPane.showMessageDialog(mainFrame, "系统设置功能开发中");
     }
 
-    public void showCompetitionArrangement() {
-        mainFrame.removeAllCards();
-        JOptionPane.showMessageDialog(mainFrame, "比赛编排功能开发中");
-    }
+//    public void showCompetitionArrangement() {
+//        mainFrame.removeAllCards();
+//        JOptionPane.showMessageDialog(mainFrame, "比赛编排功能开发中");
+//    }
 
     public void showEventManagement() {
         mainFrame.removeAllCards();
@@ -86,5 +88,41 @@ public class AdminController {
         EventManagementPanel eventPanel = new EventManagementPanel(this);
         mainFrame.addCard("比赛项目管理", eventPanel);
         mainFrame.showCard("比赛项目管理");
+    }
+    public void showCompetitionArrangement() {
+        mainFrame.removeAllCards();
+        ArrangementPanel arrangementPanel = new ArrangementPanel(this);
+        mainFrame.addCard("比赛编排", arrangementPanel);
+        mainFrame.showCard("比赛编排");
+    }
+    // 获取需要编排的项目
+    public List<Event> getEventsForArrangement() {
+        return arrangementService.getEventsForArrangement();
+    }
+
+    // 自动分组
+    public List<ArrangementGroup> autoGroup(Event event) {
+        List<Enrollment> enrollments = arrangementService.getApprovedEnrollments(event.getEventId());
+        return arrangementService.autoGroup(event, enrollments);
+    }
+
+    // 分配道次
+    public List<TrackAssignment> assignTracks(ArrangementGroup group) {
+        return arrangementService.assignTracks(group);
+    }
+
+    // 保存编排结果
+    public void saveArrangement(List<ArrangementGroup> groups) {
+        arrangementService.saveArrangement(groups);
+    }
+
+    // 生成比赛名单
+    public void generateStartList(Event event) {
+        arrangementService.generateStartList(event);
+    }
+
+    // 设置比赛时间
+    public void setGroupTime(ArrangementGroup group, LocalDateTime startTime) {
+        group.setStartTime(startTime);
     }
 }
