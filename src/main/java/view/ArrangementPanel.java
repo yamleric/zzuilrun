@@ -16,6 +16,7 @@ import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 public class ArrangementPanel extends JPanel {
@@ -29,6 +30,7 @@ public class ArrangementPanel extends JPanel {
     private JTable assignmentsTable;
     private JButton timeSetBtn;
     private JButton exportListBtn; // 导出按钮声明
+    private JLabel statusBar; // 添加状态栏变量声明
 
     private List<ArrangementGroup> currentGroups;
     private Event selectedEvent; // 添加selectedEvent变量声明
@@ -48,9 +50,49 @@ public class ArrangementPanel extends JPanel {
         JPanel topPanel = new JPanel(new GridLayout(1, 3, 10, 0));
         topPanel.add(new JLabel("选择项目:"));
         eventComboBox = new JComboBox<>();
+        // 使用自定义渲染器显示项目名称
+        eventComboBox.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value,
+                                                          int index, boolean isSelected,
+                                                          boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+
+                if (value instanceof Event) {
+                    Event event = (Event) value;
+                    DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("MM/dd HH:mm");
+                    String formattedDate = event.getStartTime() != null ?
+                            " - " + event.getStartTime().format(dateFormatter) :
+                            " - 时间待定";
+
+                    setText(event.getEventName() + formattedDate);
+
+                    // 根据项目状态显示不同颜色
+//                    switch (event.getStatus()) {
+//                        case 1: // 进行中
+//                            setForeground(isSelected ? Color.WHITE : new Color(0, 150, 0));
+//                            break;
+//                        case 0: // 未开始
+//                            setForeground(isSelected ? Color.WHITE : Color.GRAY);
+//                            break;
+//                        case 2: // 已结束
+//                            setForeground(isSelected ? Color.WHITE : new Color(150, 0, 0));
+//                            break;
+//                    }
+                }
+                return this;
+            }
+        });
+
+        // 事件选择监听器（修正）
         eventComboBox.addActionListener(e -> {
-            selectedEvent = (Event) eventComboBox.getSelectedItem(); // 设置选中的项目
+            selectedEvent = (Event) eventComboBox.getSelectedItem();
             clearTables();
+            // 更新为使用 setStatusMessage 方法
+            if (selectedEvent != null) {
+                setStatusMessage("当前项目: " + selectedEvent.getEventName() +
+                        " | 状态: " + getEventStatusText(selectedEvent.getStatus()));
+            }
         });
         topPanel.add(eventComboBox);
 
@@ -126,7 +168,39 @@ public class ArrangementPanel extends JPanel {
         splitPane.setBottomComponent(assignmentsPanel);
 
         add(splitPane, BorderLayout.CENTER);
+        // 添加状态栏（可选）
+        add(createStatusBar(), BorderLayout.SOUTH);
     }
+
+    // 添加状态栏方法（可选）
+    private JPanel createStatusBar() {
+        JPanel statusPanel = new JPanel(new BorderLayout());
+        statusPanel.setBackground(new Color(240, 240, 240));
+        statusPanel.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+
+        statusBar = new JLabel("就绪"); // 初始化 statusBar 变量
+        statusPanel.add(statusBar, BorderLayout.WEST);
+
+        return statusPanel;
+    }
+
+    // 设置状态消息方法（更新）
+    private void setStatusMessage(String message) {
+        if (statusBar != null) {
+            statusBar.setText(message);
+        }
+    }
+
+    // 获取项目状态文本（可选）
+    private String getEventStatusText(int status) {
+        switch (status) {
+            case 0: return "未开始";
+            case 1: return "进行中";
+            case 2: return "已结束";
+            default: return "未知状态";
+        }
+    }
+
 
     private void loadEvents() {
         eventComboBox.removeAllItems();
