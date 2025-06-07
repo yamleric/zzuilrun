@@ -1,12 +1,10 @@
 package controller;
 
-import model.ArrangementGroup;
-import model.Enrollment;
-import model.Event;
-import model.TrackAssignment;
+import model.*;
 import service.ApprovalService;
 import service.ApprovalServiceImpl;
 import service.ArrangementService; // 添加ArrangementService导入
+import service.EnrollmentStatsService;
 import view.*;
 
 import javax.swing.*;
@@ -17,11 +15,25 @@ public class AdminController {
     private final AdminMainFrame mainFrame;
     private final ApprovalService approvalService = new ApprovalServiceImpl();
     private final ArrangementService arrangementService = new ArrangementService(); // 声明并初始化ArrangementService
+    private final EnrollmentStatsService statsService = new EnrollmentStatsService();
 
     public AdminController(AdminMainFrame mainFrame) {
         this.mainFrame = mainFrame;
     }
 
+    // 获取项目报名统计
+    public List<EnrollmentStats> getEventEnrollmentStats() {
+        return statsService.getEventEnrollmentStats();
+    }
+
+    // 获取学院报名统计
+    public List<EnrollmentStats> getCollegeEnrollmentStats() {
+        return statsService.getCollegeEnrollmentStats();
+    }
+    // 在 AdminController.java 中添加
+    public void showEnrollmentStats() {
+        mainFrame.showEnrollmentStats();
+    }
     // 显示报名审核视图
     public void showApprovalView() {
         mainFrame.removeAllCards();
@@ -67,10 +79,10 @@ public class AdminController {
         JOptionPane.showMessageDialog(mainFrame, "活动管理功能开发中");
     }
 
-    public void showEnrollmentStats() {
-        mainFrame.removeAllCards();
-        JOptionPane.showMessageDialog(mainFrame, "报名统计功能开发中");
-    }
+//    public void showEnrollmentStats() {
+//        mainFrame.removeAllCards();
+//        JOptionPane.showMessageDialog(mainFrame, "报名统计功能开发中");
+//    }
 
     public void showSystemSettings() {
         mainFrame.removeAllCards();

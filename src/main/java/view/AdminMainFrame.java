@@ -96,6 +96,17 @@ public class AdminMainFrame extends JFrame {
         cardPanel.revalidate();
         cardPanel.repaint();
     }
+    // 在AdminMainFrame中添加新面板显示
+    public void showEnrollmentStats() {
+        // 修复：使用 this 引用当前对象
+        this.removeAllCards();
+
+        // 创建报名统计面板
+        EnrollmentStatsPanel statsPanel = new EnrollmentStatsPanel(adminController);
+        this.addCard("报名统计", statsPanel);
+        this.showCard("报名统计");
+    }
+
 
     private JPanel createDashboardPanel() {
         JPanel dashboardPanel = new JPanel(new GridLayout(2, 3, 20, 20));
@@ -194,7 +205,7 @@ public class AdminMainFrame extends JFrame {
         // 数据分析菜单
         JMenu analysisMenu = new JMenu("数据分析");
         analysisMenu.add(createMenuItem("报名统计", e -> adminController.showEnrollmentStats()));
-        analysisMenu.add(createMenuItem("比赛编排", e -> adminController.showCompetitionArrangement())); // 新增
+        analysisMenu.add(createMenuItem("比赛编排", e -> adminController.showCompetitionArrangement()));
         menuBar.add(analysisMenu);
 
         // 系统菜单
